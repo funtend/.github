@@ -1,0 +1,57 @@
+---
+name: ⚡️ Images Optimizt
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "**.jpe?g"
+      - "**.png"
+      - "**.gif"
+      - "**.svg"
+  workflow_dispatch: {}
+
+jobs:
+  convert:
+    name: 🌐 Convert to WebP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✍️ Setup GitHub App
+        uses: funtend/actions/setup-git-credentials@main
+        id: credentials
+        with:
+          app-id: ${{ secrets.FUNTEND_APP_ID }}
+          private-key: ${{ secrets.FUNTEND_APP_PRIVATE_KEY }}
+
+      - name: ⤵️ Check out code from GitHub
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.credentials.outputs.token }}
+
+      - name: 📦️ Set up node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.17.0
+
+      - name: 🏗️ Install Optimizt
+        run: npm install --global @funboxteam/optimizt
+
+      - name: 🚚 Run Optimizt
+        run: optimizt --verbose --force --webp .
+
+      - name: 💬 Commit changes
+        run: |
+          git config --local user.email ${{ steps.credentials.outputs.git-email }}
+          git config --local user.name ${{ steps.credentials.outputs.git-name }}
+          git add -A
+          git diff --quiet && git diff --staged --quiet \
+            || git commit -am "Create WebP versions"
+
+      - name: 🚀 Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ steps.credentials.outputs.token }}
+          branch: ${{ github.ref }}
